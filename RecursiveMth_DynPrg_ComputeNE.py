@@ -29,6 +29,7 @@ import datetime
 import numpy as np
 import sys
 import os
+from memory_profiler import profile
 
 # the whole simulation duration
 T = 500
@@ -136,77 +137,97 @@ def V(t, I, D):
         t_behaviors_new.insert(0, (t, list_value[3][1], list_value[3][2], I, D, list_value[3][0]))
         return list_value[3][0], t_behaviors_new
 
+# # computation memory
+# def mem_main(I0, D0):
+#     value, t_behaviors = V(0, I0, D0)
+#     return value, t_behaviors
+#
+# if __name__ == "__main__":
+#     div = 10
+#     x = np.linspace(0, T, div + 1)
+#     h = T / div
+#     value, t_behaviors = mem_main(I0, D0)
+
 
 if __name__ == "__main__":
     # print(sys.argv)
     # div = int(sys.argv[1])
 
-    # divide the whole simulation duration into 'div' segments.
-    div = 10
-    while div <= 16:
-        x = np.linspace(0, T, div + 1)
-        # get the temporal length of one temporal segment of the whole duration
-        h = T / div
+    times = 3
+    for tmp_times in range(times):
+        computation_time_file = 'ComputationTime_{}times.csv'.format(tmp_times)
 
-        print('T:{} div:{}'.format(T, div))
-        print('Umax:{} rhomax:{}'.format(U_max, rho_max))
-        outputstr = 'T:{} div:{}\nU_max:{} rho_max:{}\n'.format(T, div, U_max, rho_max)
+        # divide the whole simulation duration into 'div' segments.
+        div = 10
+        while div <= 13:
+            x = np.linspace(0, T, div + 1)
+            # get the temporal length of one temporal segment of the whole duration
+            h = T / div
 
-        t_begin = datetime.datetime.now()
-        print('begin at: {}'.format(t_begin))
-        # conduct the computation of the NE strategy.
-        value, t_behaviors = V(0, I0, D0)
-        t_end = datetime.datetime.now()
-        print('end at: {}'.format(t_end))
-        delta_t = t_end - t_begin
-        print(delta_t)
-        outputstr = outputstr+'begin at: {}\n'.format(t_begin)+'end at: {}\n'.format(t_end)+'{}\n'.format(delta_t)
+            print('T:{} div:{}'.format(T, div))
+            print('Umax:{} rhomax:{}'.format(U_max, rho_max))
+            outputstr = 'T:{} div:{}\nU_max:{} rho_max:{}\n'.format(T, div, U_max, rho_max)
 
-        print(value)
-        print(t_behaviors)
-        outputstr = outputstr + '{}\n{}\n'.format(value, t_behaviors)
+            t_begin = datetime.datetime.now()
+            print('begin at: {}'.format(t_begin))
+            # conduct the computation of the NE strategy.
+            value, t_behaviors = V(0, I0, D0)
+            t_end = datetime.datetime.now()
+            print('end at: {}'.format(t_end))
+            delta_t = t_end - t_begin
+            print(delta_t)
+            # record computation time
+            ct_file = open(computation_time_file,'a+')
+            ct_file.write('{},{},{}\n'.format(div, delta_t.total_seconds(), delta_t))
+            ct_file.close()
 
-        # Arrange the results into
-        statebehaviors = np.zeros((len(t_behaviors), 6), dtype='float')
-        for i in range(len(t_behaviors)):
-            # time t
-            statebehaviors[i][0] = t_behaviors[i][0]
-            # U(t), the control
-            statebehaviors[i][1] = t_behaviors[i][1]
-            # rho(t), the control
-            statebehaviors[i][2] = t_behaviors[i][2]
-            # I(t), the state
-            statebehaviors[i][3] = t_behaviors[i][3]
-            # D(t), the state
-            statebehaviors[i][4] = t_behaviors[i][4]
-            # V(t), value
-            statebehaviors[i][5] = t_behaviors[i][5]
-        # filename = 'BVPDP_bev_div_{}.npy'.format(div)
-        # np.save(filename, statebehaviors)
+            outputstr = outputstr+'begin at: {}\n'.format(t_begin)+'end at: {}\n'.format(t_end)+'{}\n'.format(delta_t)
 
-        time_list = statebehaviors[:, 0]
-        U_list = statebehaviors[:, 1]
-        rho_list = statebehaviors[:, 2]
-        I_list = statebehaviors[:, 3]
-        D_list = statebehaviors[:, 4]
-        V_list = statebehaviors[:, 5]
+            print(value)
+            print(t_behaviors)
+            outputstr = outputstr + '{}\n{}\n'.format(value, t_behaviors)
 
-        PathOutDir = 'RecursiveMth_Output'
-        if not os.path.exists(PathOutDir):
-            os.mkdir(PathOutDir)
+            # Arrange the results into
+            statebehaviors = np.zeros((len(t_behaviors), 6), dtype='float')
+            for i in range(len(t_behaviors)):
+                # time t
+                statebehaviors[i][0] = t_behaviors[i][0]
+                # U(t), the control
+                statebehaviors[i][1] = t_behaviors[i][1]
+                # rho(t), the control
+                statebehaviors[i][2] = t_behaviors[i][2]
+                # I(t), the state
+                statebehaviors[i][3] = t_behaviors[i][3]
+                # D(t), the state
+                statebehaviors[i][4] = t_behaviors[i][4]
+                # V(t), value
+                statebehaviors[i][5] = t_behaviors[i][5]
+            # filename = 'BVPDP_bev_div_{}.npy'.format(div)
+            # np.save(filename, statebehaviors)
 
-        # Boundary Value Problem, change 'div' from 10 to 16
-        filename = 'DiffGame_BVPDynPrgRecur_div{}'.format(div)
-        filepath = os.path.join(PathOutDir, filename)
-        np.savez(filepath, div=div, h=h, T=T, N=N, time_list = time_list,
-                 I_list = I_list, D_list=D_list, U_list=U_list, rho_list=rho_list)
+            time_list = statebehaviors[:, 0]
+            U_list = statebehaviors[:, 1]
+            rho_list = statebehaviors[:, 2]
+            I_list = statebehaviors[:, 3]
+            D_list = statebehaviors[:, 4]
+            V_list = statebehaviors[:, 5]
 
-        # timestr = t_begin.strftime('%Y%m%d%H%M%S')
-        filename = 'outputstr_DiffGame_BVPDynPrgRecur_div{}.txt'.format(div)
-        filepath = os.path.join(PathOutDir, filename)
-        f = open(filepath, mode='w+')
-        f.write(outputstr)
-        f.close()
+            PathOutDir = 'RecursiveMth_Output'
+            if not os.path.exists(PathOutDir):
+                os.mkdir(PathOutDir)
 
-        div = div + 1
+            # Boundary Value Problem, change 'div' from 10 to 16
+            filename = 'DiffGame_BVPDynPrgRecur_div{}'.format(div)
+            filepath = os.path.join(PathOutDir, filename)
+            np.savez(filepath, div=div, h=h, T=T, N=N, time_list = time_list,
+                     I_list = I_list, D_list=D_list, U_list=U_list, rho_list=rho_list)
+
+            # timestr = t_begin.strftime('%Y%m%d%H%M%S')
+            filename = 'outputstr_DiffGame_BVPDynPrgRecur_div{}.txt'.format(div)
+            filepath = os.path.join(PathOutDir, filename)
+            f = open(filepath, mode='w+')
+            f.write(outputstr)
+            f.close()
+
+            div = div + 1
 
